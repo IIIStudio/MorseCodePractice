@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>摩斯码键盘练习</title>
+  <style>
+    :root {
+      --bg:#0f172a; --panel:#111827; --text:#e5e7eb; --muted:#94a3b8; --accent:#38bdf8; --ok:#22c55e; --bad:#ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; background:linear-gradient(180deg,#0b1220,#0f172a); color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    .wrap { width:100%; max-width:920px; background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:18px; box-shadow:0 10px 40px rgba(0,0,0,.35); }
+    h1 { margin:0 0 12px; font-size:22px; letter-spacing:.4px; text-align:center; }
+    .row { background:#0b1324; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; }
+    .row + .row { margin-top:12px; }
+    .row-title { font-size:13px; color:var(--muted); margin-bottom:8px; }
+    .radio-group { display:flex; gap:12px; flex-wrap:wrap; }
+    label.radio { display:inline-flex; align-items:center; gap:8px; background:#0c1830; border:1px solid rgba(255,255,255,.1);
+      border-radius:999px; padding:8px 12px; cursor:pointer; }
+    .display { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .card {
+      background:#0c1830; border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:16px; min-height:120px;
+      display:flex; align-items:center; justify-content:center; text-align:center;
+    }
+    .char { font-size:54px; font-weight:800; letter-spacing:2px; }
+    .morse { font-size:34px; font-weight:700; color:#e2e8f0; letter-spacing:6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+    .muted { color:var(--muted); font-size:13px; margin-top:6px; text-align:center; }
+    .controls { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
+    .ctrl {
+      background:#0c1830; border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:12px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .ctrl label { color:var(--muted); font-size:14px; }
+    .ctrl input[type="number"] {
+      background:#0b1324; color:var(--text); border:1px solid rgba(255,255,255,.12);
+      padding:8px 10px; border-radius:8px; width:120px;
+    }
+    .feedback { text-align:center; margin-top:8px; min-height:20px; font-weight:600; }
+    .ok { color: var(--ok); }
+    .bad { color: var(--bad); }
+    /* Switch (提示开关) */
+    .switch{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:#0c1830; }
+    .switch input{ position:absolute; opacity:0; width:0; height:0; }
+    .switch .slider{ position:relative; width:42px; height:24px; background:#334155; border:1px solid rgba(255,255,255,.12); border-radius:999px; transition:all .2s ease; }
+    .switch .slider::after{ content:""; position:absolute; top:2px; left:2px; width:20px; height:20px; background:#e5e7eb; border-radius:50%; transition:transform .2s ease; }
+    .switch input:checked + .slider{ background:#065f46; border-color:rgba(34,197,94,.6); }
+    .switch input:checked + .slider::after{ transform: translateX(18px); background:#ffffff; }
+    .switch .switch-text{ color:var(--muted); font-size:14px; }
+    @media (max-width: 720px){
+      .display { grid-template-columns: 1fr; }
+      .char { font-size:44px; }
+      .morse { font-size:28px; letter-spacing:4px; }
+      .controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>摩斯码键盘练习</h1>
+
+    <!-- 模式选择 -->
+    <div class="row">
+      <div class="row-title">模式选择</div>
+      <div class="radio-group" role="radiogroup" aria-label="模式选择">
+        <label class="radio"><input type="radio" name="mode" value="all" /> 全部</label>
+        <label class="radio"><input type="radio" name="mode" value="letters" checked /> 仅字母</label>
+        <label class="radio"><input type="radio" name="mode" value="digits" /> 仅数字</label>
+        <label class="switch" id="hintWrap"><input type="checkbox" id="hint" checked /><span class="slider"></span><span class="switch-text">提示</span></label>
+      </div>
+      
+    </div>
+
+    <!-- 显示字符 和 摩斯码 -->
+    <div class="row">
+      <div class="row-title">左边显示字符 / 右边显示摩斯码</div>
+      <div class="display">
+        <div class="card">
+          <div>
+            <div id="char" class="char">A</div>
+            
+          </div>
+        </div>
+        <div class="card">
+          <div>
+            <div id="morse" class="morse"></div>
+          </div>
+        </div>
+      </div>
+      <div id="tip" class="muted">输入方式：空格短按=·，长按=−（阈值=2×单位时长；单位=1200/WPM ms）</div>
+      <div id="fb" class="feedback"></div>
+    </div>
+
+    <!-- 参数设置 -->
+    <div class="row">
+      <div class="row-title">参数设置</div>
+      <div class="controls">
+        <div class="ctrl">
+          <label for="freq">声音频率 (Hz)</label>
+          <input id="freq" type="number" min="100" max="4000" step="10" value="800" />
+        </div>
+        <div class="ctrl">
+          <label for="wpm">WPM (每分钟字数)</label>
+          <input id="wpm" type="number" min="5" max="60" step="1" value="15" />
+        </div>
+      </div>
+      <div class="muted">当前：声音频率 (Hz): <b id="freqShow">800</b>　WPM (每分钟字数): <b id="wpmShow">15</b></div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      // 摩斯码映射（点 . 划 -）
+      const MORSE = {
+        A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".", F: "..-.", G: "--.",
+        H: "....", I: "..", J: ".---", K: "-.-", L: ".-..", M: "--", N: "-.",
+        O: "---", P: ".--.", Q: "--.-", R: ".-.", S: "...", T: "-", U: "..-",
+        V: "...-", W: ".--", X: "-..-", Y: "-.--", Z: "--..",
+        "0": "-----", "1": ".----", "2": "..---", "3": "...--", "4": "....-",
+        "5": ".....", "6": "-....", "7": "--...", "8": "---..", "9": "----."
+      };
+
+      // DOM
+      const el = {
+        radios: Array.from(document.querySelectorAll('input[name="mode"]')),
+        char: document.getElementById('char'),
+        morse: document.getElementById('morse'),
+        tip: document.getElementById('tip'),
+        fb: document.getElementById('fb'),
+        freq: document.getElementById('freq'),
+        wpm: document.getElementById('wpm'),
+        freqShow: document.getElementById('freqShow'),
+        wpmShow: document.getElementById('wpmShow'),
+        hint: document.getElementById('hint'),
+      };
+
+      // 状态
+      const S = {
+        target: 'A',
+        input: '',
+        isPressing: false,
+        t0: 0,
+        ctx: null, osc: null, gain: null
+      };
+
+      // 工具与显示
+      function unitMs(){ const w = parseFloat(el.wpm.value) || 15; return Math.max(5, 1200 / Math.max(1, w)); }
+      function thresholdMs(){ return unitMs() * 2; }
+      function pretty(pattern){ return (pattern||'').replace(/\./g, '·').replace(/-/g, '−').split('').join(' '); }
+      function syncParams(){ el.freqShow.textContent = String(parseInt(el.freq.value||'800',10)); el.wpmShow.textContent = String(parseInt(el.wpm.value||'15',10)); }
+      function refreshUI(){
+        el.char.textContent = S.target || ' ';
+        const hintOn = !!(el.hint ? el.hint.checked : true);
+        // 无输入：根据全局开关决定是否显示提示；有输入：始终显示你的输入（绿色）
+        if (!S.input) {
+          el.morse.className = 'morse';
+          el.morse.textContent = hintOn ? pretty(MORSE[S.target] || '') : '';
+        } else {
+          el.morse.textContent = pretty(S.input);
+          el.morse.className = 'morse ok';
+        }
+      }
+      function currentPool(){
+        const v = el.radios.find(r => r.checked)?.value || 'letters';
+        if (v === 'all') return Object.keys(MORSE);
+        if (v === 'letters') return Object.keys(MORSE).filter(c=>/[A-Z]/.test(c));
+        return Object.keys(MORSE).filter(c=>/[0-9]/.test(c));
+      }
+      function nextTarget(){
+        const pool = currentPool();
+        if (pool.length === 0) { S.target = '-'; S.input=''; refreshUI(); return; }
+        S.target = pool[Math.floor(Math.random()*pool.length)];
+        S.input = '';
+        refreshUI();
+        // 保留输入说明
+        el.tip.textContent = '输入方式：空格短按=·，长按=−（阈值=2×单位时长；单位=1200/WPM ms）';
+        el.fb.textContent = ''; el.fb.className = 'feedback';
+      }
+
+      // 声效
+      function ensureCtx(){ if (!S.ctx) S.ctx = new (window.AudioContext || window.webkitAudioContext)(); return S.ctx; }
+      function startTone(){
+        const ctx = ensureCtx();
+        S.osc = ctx.createOscillator();
+        S.gain = ctx.createGain();
+        S.osc.type = 'sine';
+        const f = Math.max(50, Math.min(4000, parseFloat(el.freq.value) || 800));
+        S.osc.frequency.setValueAtTime(f, ctx.currentTime);
+        S.gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        S.gain.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + 0.01);
+        S.osc.connect(S.gain).connect(ctx.destination);
+        S.osc.start();
+      }
+      function stopTone(){
+        if (!S.osc || !S.gain) return;
+        const ctx = ensureCtx();
+        const t = ctx.currentTime;
+        S.gain.gain.setTargetAtTime(0.0001, t, 0.02);
+        try { S.osc.stop(t + 0.03); } catch {}
+        S.osc = null; S.gain = null;
+      }
+
+      // 判定
+      function judge(){
+        const target = MORSE[S.target] || '';
+        if (S.input === target){
+          el.fb.textContent = '正确！'; el.fb.className = 'feedback ok';
+          setTimeout(nextTarget, 600);
+          return;
+        }
+        if (target.startsWith(S.input)){
+          // 前缀正确，继续
+          el.fb.textContent = ''; el.fb.className = 'feedback';
+          return;
+        }
+        // 错误
+        el.fb.textContent = '错误，请重试'; el.fb.className = 'feedback bad';
+        const hintOn = !!(el.hint ? el.hint.checked : true);
+        if (hintOn) {
+          el.morse.textContent = pretty(MORSE[S.target] || '');
+          el.morse.className = 'morse';
+        } else {
+          el.morse.textContent = '';
+          el.morse.className = 'morse';
+        }
+        setTimeout(() => { S.input=''; refreshUI(); el.fb.textContent=''; el.fb.className='feedback'; }, 800);
+      }
+
+      // 键盘
+      function onKeyDown(e){
+        if (e.code === 'Space'){
+          if (S.isPressing) return;
+          e.preventDefault();
+          S.isPressing = true;
+          S.t0 = performance.now();
+          startTone();
+        } else if (e.key === 'Backspace'){
+          e.preventDefault();
+          if (S.input.length>0){ S.input = S.input.slice(0,-1); refreshUI(); el.fb.textContent=''; el.fb.className='feedback'; }
+        }
+      }
+      function onKeyUp(e){
+        if (e.code === 'Space' && S.isPressing){
+          e.preventDefault();
+          stopTone();
+          S.isPressing = false;
+          const dt = performance.now() - S.t0;
+          const sym = (dt >= thresholdMs()) ? '-' : '.';
+          S.input += sym;
+          refreshUI();
+          judge();
+        }
+      }
+
+      // 事件绑定
+      el.radios.forEach(r => r.addEventListener('change', nextTarget));
+      if (el.hint) el.hint.addEventListener('change', refreshUI);
+      el.freq.addEventListener('input', syncParams);
+      el.wpm.addEventListener('input', syncParams);
+      window.addEventListener('keydown', onKeyDown, { passive:false });
+      window.addEventListener('keyup', onKeyUp, { passive:false });
+
+      // 初始化
+      syncParams();
+      nextTarget();
+    })();
+  </script>
+        <style>
+        .corner-links {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            display: flex;
+            align-items: center;
+            z-index: 9999;
+        }
+        .corner-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .corner-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(255, 255, 255, 0.15);
+        }
+        .corner-link img,
+        .corner-link svg {
+            width: 22px;
+            height: 22px;
+        }
+        .corner-link .label {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+    </style>
+    <div class="corner-links" aria-label="页面固定链接">
+        <a class="corner-link" href="https://github.com/IIIStudio/MorseCodePractice" target="_blank" rel="noopener noreferrer" aria-label="前往 GitHub 仓库">
+            <!-- 内联 GitHub 图标，避免外部资源依赖 -->
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#ffffff" d="M12 .5a12 12 0 0 0-3.79 23.41c.6.11.82-.26.82-.58v-2.02c-3.35.73-4.06-1.61-4.06-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.74.08-.74 1.2.09 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.49.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.51.12-3.15 0 0 1.01-.32 3.3 1.23.96-.27 1.99-.4 3.01-.4s2.05.14 3.01.4c2.29-1.55 3.3-1.23 3.3-1.23.66 1.64.25 2.85.12 3.15.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.47 5.93.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12 12 0 0 0 12 .5Z"/>
+            </svg>
+            <span class="label">MorseCodePractice</span>
+        </a>
+        <a class="corner-link" href="https://cnb.cool/IIIStudio/HTML/Game/MorseCodePractice/" target="_blank" rel="noopener noreferrer" aria-label="前往 MorseCodePractice 文档页面">
+            <img src="https://docs.cnb.cool/images/logo/svg/LogoColorfulIcon.svg" alt="CNB Logo">
+        </a>
+    </div>
+</body>
+</html>
