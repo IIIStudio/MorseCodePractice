@@ -1,13 +1,11 @@
-<!DOCTYPE html>
+<![DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>摩斯码键盘练习</title>
   <style>
-    :root {
-      --bg:#0f172a; --panel:#111827; --text:#e5e7eb; --muted:#94a3b8; --accent:#38bdf8; --ok:#22c55e; --bad:#ef4444;
-    }
+    :root { --bg:#0f172a; --panel:#111827; --text:#e5e7eb; --muted:#94a3b8; --accent:#38bdf8; --ok:#22c55e; --bad:#ef4444; }
     * { box-sizing: border-box; }
     body {
       margin:0; background:linear-gradient(180deg,#0b1220,#0f172a); color:var(--text);
@@ -29,7 +27,7 @@
       display:flex; align-items:center; justify-content:center; text-align:center;
     }
     .char { font-size:54px; font-weight:800; letter-spacing:2px; }
-    .morse { font-size:34px; font-weight:700; color:#e2e8f0; letter-spacing:6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+    .morse { font-size:34px; font-weight:700; color:#e2e8f0; letter-spacing:6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; }
     .muted { color:var(--muted); font-size:13px; margin-top:6px; text-align:center; }
     .controls { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
     .ctrl {
@@ -44,7 +42,6 @@
     .feedback { text-align:center; margin-top:8px; min-height:20px; font-weight:600; }
     .ok { color: var(--ok); }
     .bad { color: var(--bad); }
-    /* Switch (提示开关) */
     .switch{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:#0c1830; }
     .switch input{ position:absolute; opacity:0; width:0; height:0; }
     .switch .slider{ position:relative; width:42px; height:24px; background:#334155; border:1px solid rgba(255,255,255,.12); border-radius:999px; transition:all .2s ease; }
@@ -58,45 +55,66 @@
       .morse { font-size:28px; letter-spacing:4px; }
       .controls { grid-template-columns: 1fr; }
     }
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px; border-radius:999px; cursor:pointer;
+      background:#0c1830; border:1px solid rgba(255,255,255,.1); color:var(--text);
+      font-size:14px;
+    }
+    .btn:hover{ border-color: rgba(56,189,248,.6); box-shadow:0 2px 10px rgba(56,189,248,.15); }
+    .modal-backdrop{ position: fixed; inset:0; background: rgba(0,0,0,.5); display:none; z-index: 998; }
+    .modal{ position: fixed; inset:0; display:none; align-items:center; justify-content:center; z-index: 999; }
+    .modal .panel{
+      position: absolute; top:50%; left:50%; transform: translate(-50%, -50%);
+      width: min(720px, 92vw); max-height: 80vh; overflow:auto;
+      background:#0c1830; border:1px solid rgba(255,255,255,.15); border-radius:12px; padding:16px;
+      box-shadow:0 20px 60px rgba(0,0,0,.45);
+    }
+    .modal .panel h2{ margin:0 0 10px; font-size:18px; }
+    .modal .panel .close{
+      float:right; background:transparent; border:1px solid rgba(255,255,255,.2); color:var(--text);
+      border-radius:8px; padding:6px 10px; cursor:pointer;
+    }
+    .morse-grid{ display:grid; grid-template-columns: repeat(8, 1fr); gap:8px; }
+    .morse-cell{ border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:10px; text-align:center; background:#0b1324; }
+    .morse-cell .top{ font-weight:700; font-size:18px; margin-bottom:6px; }
+    .morse-cell .bottom{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; font-size:16px; letter-spacing:1px; color:#e2e8f0; }
+    .exam-char{ font-size:64px; font-weight:800; text-align:center; margin:8px 0 12px; letter-spacing:2px; }
+    .input{
+      background:#0b1324; color:var(--text); border:1px solid rgba(255,255,255,.12);
+      padding:10px 12px; border-radius:8px; width:100%;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+    }
+    .input-row{ display:flex; gap:8px; align-items:center; margin-top:8px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>摩斯码键盘练习</h1>
 
-    <!-- 模式选择 -->
     <div class="row">
       <div class="row-title">模式选择</div>
       <div class="radio-group" role="radiogroup" aria-label="模式选择">
-        <label class="radio"><input type="radio" name="mode" value="all" /> 全部</label>
-        <label class="radio"><input type="radio" name="mode" value="letters" checked /> 仅字母</label>
+        <label class="radio"><input type="radio" name="mode" value="all" checked /> 全部</label>
+        <label class="radio"><input type="radio" name="mode" value="letters" /> 仅字母</label>
         <label class="radio"><input type="radio" name="mode" value="digits" /> 仅数字</label>
         <label class="switch" id="hintWrap"><input type="checkbox" id="hint" checked /><span class="slider"></span><span class="switch-text">提示</span></label>
+        <button id="morseBtn" class="btn" type="button" aria-haspopup="dialog" aria-controls="morseModal">摩斯码对照表</button>
+        <button id="examBtn" class="btn" type="button" aria-haspopup="dialog" aria-controls="examModal">考试</button>
+        <button id="convertBtn" class="btn" type="button" aria-haspopup="dialog" aria-controls="convertModal">转换</button>
       </div>
-      
     </div>
 
-    <!-- 显示字符 和 摩斯码 -->
     <div class="row">
       <div class="row-title">左边显示字符 / 右边显示摩斯码</div>
       <div class="display">
-        <div class="card">
-          <div>
-            <div id="char" class="char">A</div>
-            
-          </div>
-        </div>
-        <div class="card">
-          <div>
-            <div id="morse" class="morse"></div>
-          </div>
-        </div>
+        <div class="card"><div><div id="char" class="char">A</div></div></div>
+        <div class="card"><div><div id="morse" class="morse"></div></div></div>
       </div>
       <div id="tip" class="muted">输入方式：空格短按=·，长按=−（阈值=2×单位时长；单位=1200/WPM ms）</div>
       <div id="fb" class="feedback"></div>
     </div>
 
-    <!-- 参数设置 -->
     <div class="row">
       <div class="row-title">参数设置</div>
       <div class="controls">
@@ -113,11 +131,62 @@
     </div>
   </div>
 
+  <div id="modalBackdrop" class="modal-backdrop" aria-hidden="true"></div>
+
+  <div id="morseModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="morseModalTitle" aria-hidden="true">
+    <div class="panel">
+      <button id="closeMorseModal" class="close" type="button" aria-label="关闭">关闭</button>
+      <h2 id="morseModalTitle">摩斯码对照表</h2>
+      <div id="morseGrid" class="morse-grid" aria-label="摩斯码对照格子"></div>
+    </div>
+  </div>
+
+  <div id="examModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="examModalTitle" aria-hidden="true">
+    <div class="panel">
+      <button id="closeExamModal" class="close" type="button" aria-label="关闭">关闭</button>
+      <h2 id="examModalTitle">摩斯码考试</h2>
+      <div class="controls" style="margin-bottom:8px;">
+        <div class="ctrl" style="justify-content:flex-start; gap:12px;">
+          <label for="examCount">数量</label>
+          <input id="examCount" type="number" min="1" max="100" step="1" value="10" />
+          <button id="examStart" class="btn" type="button">开始</button>
+          <button id="examEnd" class="btn" type="button">结束</button>
+        </div>
+      </div>
+      <div id="examChar" class="exam-char" aria-live="polite"></div>
+      <div id="examStatus" class="muted">未开始</div>
+      <div id="examResult" class="muted" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div id="convertModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="convertModalTitle" aria-hidden="true">
+    <div class="panel">
+      <button id="closeConvertModal" class="close" type="button" aria-label="关闭">关闭</button>
+      <h2 id="convertModalTitle">摩斯码转换</h2>
+      <div class="muted">说明：输入框只包含 . 和 -（可含空格、/）则进行摩斯码解码为字符；否则按字符编码为摩斯码。支持 A-Z、0-9。</div>
+      <input id="convertInput" class="input" placeholder="输入字符或摩斯码（例如：A 或 .- 或 ..... ..... / ..... .....）" />
+      <div class="input-row">
+        <button id="convertDo" class="btn" type="button">转换</button>
+        <button id="convertCopy" class="btn" type="button">复制</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提示弹窗（居中） -->
+  <div id="notifyModal" class="modal" role="alertdialog" aria-modal="true" aria-labelledby="notifyModalTitle" aria-hidden="true">
+    <div class="panel">
+      <h2 id="notifyModalTitle">提示</h2>
+      <div id="notifyMsg" class="muted" style="margin:8px 0 12px;"></div>
+      <div class="input-row" style="justify-content:flex-end;">
+        <button id="notifyOk" class="btn" type="button">知道了</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     (() => {
       'use strict';
 
-      // 摩斯码映射（点 . 划 -）
       const MORSE = {
         A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".", F: "..-.", G: "--.",
         H: "....", I: "..", J: ".---", K: "-.-", L: ".-..", M: "--", N: "-.",
@@ -126,8 +195,8 @@
         "0": "-----", "1": ".----", "2": "..---", "3": "...--", "4": "....-",
         "5": ".....", "6": "-....", "7": "--...", "8": "---..", "9": "----."
       };
+      const MORSE_INV = Object.fromEntries(Object.entries(MORSE).map(([k,v])=>[v,k]));
 
-      // DOM
       const el = {
         radios: Array.from(document.querySelectorAll('input[name="mode"]')),
         char: document.getElementById('char'),
@@ -139,26 +208,51 @@
         freqShow: document.getElementById('freqShow'),
         wpmShow: document.getElementById('wpmShow'),
         hint: document.getElementById('hint'),
+        morseBtn: document.getElementById('morseBtn'),
+        morseModal: document.getElementById('morseModal'),
+        morseGrid: document.getElementById('morseGrid'),
+        closeMorseModal: document.getElementById('closeMorseModal'),
+        examBtn: document.getElementById('examBtn'),
+        examModal: document.getElementById('examModal'),
+        closeExamModal: document.getElementById('closeExamModal'),
+        examCount: document.getElementById('examCount'),
+        examStart: document.getElementById('examStart'),
+        examEnd: document.getElementById('examEnd'),
+        examChar: document.getElementById('examChar'),
+        examStatus: document.getElementById('examStatus'),
+        examResult: document.getElementById('examResult'),
+        convertBtn: document.getElementById('convertBtn'),
+        convertModal: document.getElementById('convertModal'),
+        closeConvertModal: document.getElementById('closeConvertModal'),
+        convertInput: document.getElementById('convertInput'),
+        convertDo: document.getElementById('convertDo'),
+        convertCopy: document.getElementById('convertCopy'),
+        notifyModal: document.getElementById('notifyModal'),
+        notifyMsg: document.getElementById('notifyMsg'),
+        notifyOk: document.getElementById('notifyOk'),
+        modalBackdrop: document.getElementById('modalBackdrop'),
       };
 
-      // 状态
       const S = {
         target: 'A',
         input: '',
         isPressing: false,
         t0: 0,
-        ctx: null, osc: null, gain: null
+        ctx: null, osc: null, gain: null,
+        examActive: false,
+        examList: [],
+        examIndex: 0,
+        examResults: []
       };
 
-      // 工具与显示
       function unitMs(){ const w = parseFloat(el.wpm.value) || 15; return Math.max(5, 1200 / Math.max(1, w)); }
       function thresholdMs(){ return unitMs() * 2; }
       function pretty(pattern){ return (pattern||'').replace(/\./g, '·').replace(/-/g, '−').split('').join(' '); }
+      function compact(pattern){ return (pattern||'').replace(/\./g, '·').replace(/-/g, '−'); }
       function syncParams(){ el.freqShow.textContent = String(parseInt(el.freq.value||'800',10)); el.wpmShow.textContent = String(parseInt(el.wpm.value||'15',10)); }
       function refreshUI(){
         el.char.textContent = S.target || ' ';
         const hintOn = !!(el.hint ? el.hint.checked : true);
-        // 无输入：根据全局开关决定是否显示提示；有输入：始终显示你的输入（绿色）
         if (!S.input) {
           el.morse.className = 'morse';
           el.morse.textContent = hintOn ? pretty(MORSE[S.target] || '') : '';
@@ -168,7 +262,7 @@
         }
       }
       function currentPool(){
-        const v = el.radios.find(r => r.checked)?.value || 'letters';
+        const v = el.radios.find(r => r.checked)?.value || 'all';
         if (v === 'all') return Object.keys(MORSE);
         if (v === 'letters') return Object.keys(MORSE).filter(c=>/[A-Z]/.test(c));
         return Object.keys(MORSE).filter(c=>/[0-9]/.test(c));
@@ -179,12 +273,10 @@
         S.target = pool[Math.floor(Math.random()*pool.length)];
         S.input = '';
         refreshUI();
-        // 保留输入说明
         el.tip.textContent = '输入方式：空格短按=·，长按=−（阈值=2×单位时长；单位=1200/WPM ms）';
         el.fb.textContent = ''; el.fb.className = 'feedback';
       }
 
-      // 声效
       function ensureCtx(){ if (!S.ctx) S.ctx = new (window.AudioContext || window.webkitAudioContext)(); return S.ctx; }
       function startTone(){
         const ctx = ensureCtx();
@@ -207,34 +299,48 @@
         S.osc = null; S.gain = null;
       }
 
-      // 判定
       function judge(){
         const target = MORSE[S.target] || '';
         if (S.input === target){
           el.fb.textContent = '正确！'; el.fb.className = 'feedback ok';
-          setTimeout(nextTarget, 600);
+          if (S.examActive){
+            S.examResults.push({char:S.target, correct:true, your:S.input});
+            S.examIndex++;
+            setTimeout(nextExamItem, 200);
+          } else {
+            setTimeout(nextTarget, 600);
+          }
           return;
         }
         if (target.startsWith(S.input)){
-          // 前缀正确，继续
           el.fb.textContent = ''; el.fb.className = 'feedback';
           return;
         }
-        // 错误
-        el.fb.textContent = '错误，请重试'; el.fb.className = 'feedback bad';
+        el.fb.textContent = '错误，进入下一题'; el.fb.className = 'feedback bad';
         const hintOn = !!(el.hint ? el.hint.checked : true);
-        if (hintOn) {
-          el.morse.textContent = pretty(MORSE[S.target] || '');
-          el.morse.className = 'morse';
-        } else {
-          el.morse.textContent = '';
-          el.morse.className = 'morse';
+        if (!S.examActive){
+          if (hintOn) {
+            el.morse.textContent = pretty(MORSE[S.target] || '');
+            el.morse.className = 'morse';
+          } else {
+            el.morse.textContent = '';
+            el.morse.className = 'morse';
+          }
+          setTimeout(() => { S.input=''; refreshUI(); el.fb.textContent=''; el.fb.className='feedback'; }, 800);
+          return;
         }
-        setTimeout(() => { S.input=''; refreshUI(); el.fb.textContent=''; el.fb.className='feedback'; }, 800);
+        S.examResults.push({char:S.target, correct:false, your:S.input});
+        S.examIndex++;
+        S.input='';
+        el.fb.textContent='';
+        el.fb.className='feedback';
+        nextExamItem();
       }
 
-      // 键盘
       function onKeyDown(e){
+        const t = e.target;
+        const isInputTarget = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
+        if (isInputTarget) return;
         if (e.code === 'Space'){
           if (S.isPressing) return;
           e.preventDefault();
@@ -247,6 +353,9 @@
         }
       }
       function onKeyUp(e){
+        const t = e.target;
+        const isInputTarget = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
+        if (isInputTarget) return;
         if (e.code === 'Space' && S.isPressing){
           e.preventDefault();
           stopTone();
@@ -259,63 +368,209 @@
         }
       }
 
-      // 事件绑定
-      el.radios.forEach(r => r.addEventListener('change', nextTarget));
+      function buildMorseTable(){
+        if (!el.morseGrid) return;
+        const entries = Object.entries(MORSE);
+        el.morseGrid.innerHTML = entries.map(([ch, pat]) =>
+          `<div class="morse-cell"><div class="top">${ch}</div><div class="bottom">${compact(pat)}</div></div>`
+        ).join('');
+      }
+      function openMorseModal(){
+        buildMorseTable();
+        if (el.modalBackdrop) el.modalBackdrop.style.display = 'block';
+        if (el.morseModal){ el.morseModal.style.display = 'flex'; el.morseModal.setAttribute('aria-hidden','false'); }
+        if (el.modalBackdrop) el.modalBackdrop.setAttribute('aria-hidden','false');
+      }
+      function closeMorseModal(){
+        if (el.morseModal){ el.morseModal.style.display = 'none'; el.morseModal.setAttribute('aria-hidden','true'); }
+        if (el.modalBackdrop){ el.modalBackdrop.style.display = 'none'; el.modalBackdrop.setAttribute('aria-hidden','true'); }
+      }
+
+      function buildExamList(n){
+        const pool = currentPool();
+        const list = [];
+        for (let i=0;i<n;i++){ list.push(pool[Math.floor(Math.random()*pool.length)]); }
+        return list;
+      }
+      function nextExamItem(){
+        if (!S.examActive) return;
+        if (S.examIndex >= S.examList.length){
+          const total = S.examList.length;
+          const correct = S.examResults.filter(r=>r.correct).length;
+          const wrong = total - correct;
+          const detail = S.examResults.map((r,i)=>`${i+1}. ${r.char} ${r.correct?'✅':'❌'}${r.correct?'':`（你的：${pretty(r.your)}，应为：${pretty(MORSE[r.char]||'')}）`}`).join('<br>');
+          if (el.examStatus) el.examStatus.innerHTML = `完成：${total}；正确：${correct}；错误：${wrong}`;
+          if (el.examResult) el.examResult.innerHTML = detail;
+          S.examActive = false;
+          return;
+        }
+        S.target = S.examList[S.examIndex];
+        S.input = '';
+        if (el.examChar) el.examChar.textContent = S.target;
+        refreshUI();
+        if (el.examStatus) el.examStatus.textContent = `进行中 ${S.examIndex+1}/${S.examList.length}`;
+      }
+      function openExamModal(){
+        if (el.modalBackdrop) el.modalBackdrop.style.display = 'block';
+        if (el.examModal){ el.examModal.style.display = 'flex'; el.examModal.setAttribute('aria-hidden','false'); }
+        if (el.modalBackdrop) el.modalBackdrop.setAttribute('aria-hidden','false');
+      }
+      function closeExamModal(){
+        if (el.examModal){ el.examModal.style.display = 'none'; el.examModal.setAttribute('aria-hidden','true'); }
+        if (el.modalBackdrop){ el.modalBackdrop.style.display = 'none'; el.modalBackdrop.setAttribute('aria-hidden','true'); }
+      }
+      function startExam(){
+        const n = Math.max(1, Math.min(100, parseInt(el.examCount?.value||'10',10)));
+        S.examList = buildExamList(n);
+        S.examResults = [];
+        S.examIndex = 0;
+        S.examActive = true;
+        if (el.examStatus) el.examStatus.textContent = `进行中 0/${S.examList.length}`;
+        if (el.examResult) el.examResult.textContent = '';
+        openExamModal();
+        nextExamItem();
+      }
+      function endExam(){
+        if (!S.examActive){ closeExamModal(); return; }
+        S.examActive = false;
+        const total = S.examList.length;
+        const correct = S.examResults.filter(r=>r.correct).length;
+        const wrong = total - correct;
+        const detail = S.examResults.map((r,i)=>`${i+1}. ${r.char} ${r.correct?'✅':'❌'}${r.correct?'':`（你的：${pretty(r.your)}，应为：${pretty(MORSE[r.char]||'')}）`}`).join('<br>');
+        if (el.examStatus) el.examStatus.innerHTML = `结束：${total}；正确：${correct}；错误：${wrong}`;
+        if (el.examResult) el.examResult.innerHTML = detail;
+        closeExamModal();
+      }
+
+      function normalizeDotsDashes(s){ return (s||'').replace(/·/g,'.').replace(/−/g,'-'); }
+      function isMorseOnly(s){ return /^[.\-\/\s]+$/.test(s); }
+      function encodeTextToMorse(text){
+        const chars = (text||'').toUpperCase().replace(/\s+/g,' ').split('');
+        const out = [];
+        for (const ch of chars){
+          if (ch === ' '){ out.push('/'); continue; }
+          const m = MORSE[ch];
+          if (m) out.push(m); else out.push('?');
+        }
+        return out.join(' ');
+      }
+      function decodeMorseToText(morse){
+        const tokens = normalizeDotsDashes(morse).trim().split(/\s+/);
+        if (tokens.length === 1){
+          const ch = MORSE_INV[tokens[0]];
+          return ch ? ch : '?';
+        }
+        const out = [];
+        for (const t of tokens){
+          if (t === '/' ){ out.push(' '); continue; }
+          const ch = MORSE_INV[t];
+          out.push(ch ? ch : '?');
+        }
+        return out.join('');
+      }
+      function openNotify(msg){
+        if (el.notifyMsg) el.notifyMsg.textContent = msg || '提示';
+        if (el.modalBackdrop) el.modalBackdrop.style.display = 'block';
+        if (el.notifyModal){ el.notifyModal.style.display = 'flex'; el.notifyModal.setAttribute('aria-hidden','false'); }
+        if (el.modalBackdrop) el.modalBackdrop.setAttribute('aria-hidden','false');
+      }
+      function closeNotify(){
+        if (el.notifyModal){ el.notifyModal.style.display = 'none'; el.notifyModal.setAttribute('aria-hidden','true'); }
+        if (el.modalBackdrop){ el.modalBackdrop.style.display = 'none'; el.modalBackdrop.setAttribute('aria-hidden','true'); }
+      }
+      function doConvert(){
+        const raw = el.convertInput?.value || '';
+        const s = normalizeDotsDashes(raw);
+        if (isMorseOnly(s)){
+          const tokens = s.trim().split(/\s+/);
+          const invalid = tokens.some(t => t !== '/' && !MORSE_INV[t]);
+          if (invalid){ openNotify('摩斯码错误，无法转换'); return; }
+          el.convertInput.value = decodeMorseToText(s);
+        } else {
+          // 仅允许字母数字与空格，否则提示错误
+          if (!/^[A-Za-z0-9\s]+$/.test(raw)) { openNotify('摩斯码错误，无法转换'); return; }
+          el.convertInput.value = encodeTextToMorse(raw);
+        }
+      }
+      async function doCopy(){
+        try{
+          const val = el.convertInput?.value || '';
+          await navigator.clipboard.writeText(val);
+          const old = el.convertCopy.textContent;
+          el.convertCopy.textContent = '已复制';
+          setTimeout(()=>{ el.convertCopy.textContent = old; }, 800);
+        } catch(e){
+          el.convertInput.select();
+          document.execCommand('copy');
+        }
+      }
+      function openConvertModal(){
+        if (el.modalBackdrop) el.modalBackdrop.style.display = 'block';
+        if (el.convertModal){ el.convertModal.style.display = 'flex'; el.convertModal.setAttribute('aria-hidden','false'); }
+        if (el.modalBackdrop) el.modalBackdrop.setAttribute('aria-hidden','false');
+      }
+      function closeConvertModal(){
+        if (el.convertModal){ el.convertModal.style.display = 'none'; el.convertModal.setAttribute('aria-hidden','true'); }
+        if (el.modalBackdrop){ el.modalBackdrop.style.display = 'none'; el.modalBackdrop.setAttribute('aria-hidden','true'); }
+      }
+
+      el.radios.forEach(r => r.addEventListener('change', () => {
+        const checked = el.radios.find(x => x.checked);
+        if (checked) localStorage.setItem('morse_mode', checked.value);
+        nextTarget();
+      }));
       if (el.hint) el.hint.addEventListener('change', refreshUI);
       el.freq.addEventListener('input', syncParams);
       el.wpm.addEventListener('input', syncParams);
       window.addEventListener('keydown', onKeyDown, { passive:false });
       window.addEventListener('keyup', onKeyUp, { passive:false });
 
-      // 初始化
+      if (el.morseBtn) el.morseBtn.addEventListener('click', openMorseModal);
+      if (el.closeMorseModal) el.closeMorseModal.addEventListener('click', closeMorseModal);
+      if (el.examBtn) el.examBtn.addEventListener('click', openExamModal);
+      if (el.examStart) el.examStart.addEventListener('click', startExam);
+      if (el.examEnd) el.examEnd.addEventListener('click', endExam);
+      if (el.closeExamModal) el.closeExamModal.addEventListener('click', closeExamModal);
+      if (el.convertBtn) el.convertBtn.addEventListener('click', openConvertModal);
+      if (el.closeConvertModal) el.closeConvertModal.addEventListener('click', closeConvertModal);
+      if (el.convertDo) el.convertDo.addEventListener('click', doConvert);
+      if (el.convertCopy) el.convertCopy.addEventListener('click', doCopy);
+      if (el.notifyOk) el.notifyOk.addEventListener('click', closeNotify);
+      if (el.modalBackdrop) el.modalBackdrop.addEventListener('click', () => { closeMorseModal(); closeExamModal(); closeConvertModal(); closeNotify(); });
+      window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') { closeMorseModal(); closeExamModal(); closeConvertModal(); closeNotify(); } });
+
       syncParams();
+      (()=>{
+        const savedMode = localStorage.getItem('morse_mode');
+        if (savedMode) {
+          const r = el.radios.find(r=>r.value===savedMode);
+          if (r) r.checked = true;
+        } else {
+          const r = el.radios.find(r=>r.value==='all');
+          if (r) r.checked = true;
+        }
+      })();
       nextTarget();
     })();
   </script>
-        <style>
-        .corner-links {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-            display: flex;
-            align-items: center;
-            z-index: 9999;
-        }
-        .corner-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
-            border-radius: 8px;
-            color: #ffffff;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        .corner-link:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(255, 255, 255, 0.15);
-        }
-        .corner-link img,
-        .corner-link svg {
-            width: 22px;
-            height: 22px;
-        }
-        .corner-link .label {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-    </style>
-    <div class="corner-links" aria-label="页面固定链接">
-        <a class="corner-link" href="https://github.com/IIIStudio/MorseCodePractice" target="_blank" rel="noopener noreferrer" aria-label="前往 GitHub 仓库">
-            <!-- 内联 GitHub 图标，避免外部资源依赖 -->
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-                <path fill="#ffffff" d="M12 .5a12 12 0 0 0-3.79 23.41c.6.11.82-.26.82-.58v-2.02c-3.35.73-4.06-1.61-4.06-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.74.08-.74 1.2.09 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.49.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.51.12-3.15 0 0 1.01-.32 3.3 1.23.96-.27 1.99-.4 3.01-.4s2.05.14 3.01.4c2.29-1.55 3.3-1.23 3.3-1.23.66 1.64.25 2.85.12 3.15.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.47 5.93.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12 12 0 0 0 12 .5Z"/>
-            </svg>
-            <span class="label">MorseCodePractice</span>
-        </a>
-        <a class="corner-link" href="https://cnb.cool/IIIStudio/HTML/Game/MorseCodePractice/" target="_blank" rel="noopener noreferrer" aria-label="前往 MorseCodePractice 文档页面">
-            <img src="https://docs.cnb.cool/images/logo/svg/LogoColorfulIcon.svg" alt="CNB Logo">
-        </a>
-    </div>
+
+  <style>
+    .corner-links { position: fixed; right: 20px; bottom: 20px; display: flex; align-items: center; z-index: 9999; }
+    .corner-link { display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; color: #ffffff; text-decoration: none; transition: all 0.3s ease; }
+    .corner-link:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(255, 255, 255, 0.15); }
+    .corner-link img, .corner-link svg { width: 22px; height: 22px; }
+    .corner-link .label { font-weight: 600; font-size: 0.95rem; }
+  </style>
+  <div class="corner-links" aria-label="页面固定链接">
+    <a class="corner-link" href="https://github.com/IIIStudio/MorseCodePractice" target="_blank" rel="noopener noreferrer" aria-label="前往 GitHub 仓库">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#ffffff" d="M12 .5a12 12 0 0 0-3.79 23.41c.6.11.82-.26.82-.58v-2.02c-3.35.73-4.06-1.61-4.06-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.74.08-.74 1.2.09 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.49.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.51.12-3.15 0 0 1.01-.32 3.3 1.23.96-.27 1.99-.4 3.01-.4s2.05.14 3.01.4c2.29-1.55 3.3-1.23 3.3-1.23.66 1.64.25 2.85.12 3.15.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.47 5.93.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12 12 0 0 0 12 .5Z"/>
+      </svg>
+      <span class="label">MorseCodePractice</span>
+    </a>
+    <a class="corner-link" href="https://cnb.cool/IIIStudio/HTML/Game/MorseCodePractice/" target="_blank" rel="noopener noreferrer" aria-label="前往 MorseCodePractice 文档页面">
+      <img src="https://docs.cnb.cool/images/logo/svg/LogoColorfulIcon.svg" alt="CNB Logo">
+    </a>
+  </div>
 </body>
 </html>
