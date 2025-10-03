@@ -316,7 +316,7 @@
           el.fb.textContent = ''; el.fb.className = 'feedback';
           return;
         }
-        el.fb.textContent = '错误，进入下一题'; el.fb.className = 'feedback bad';
+        el.fb.textContent = '错误'; el.fb.className = 'feedback bad';
         const hintOn = !!(el.hint ? el.hint.checked : true);
         if (!S.examActive){
           if (hintOn) {
